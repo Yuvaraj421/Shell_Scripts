@@ -1,0 +1,54 @@
+                                                     Shell-Script for Backup mySQL to S3 Storage
+
+step1: Install s3cmd on ec2 instance use this below commands 
+
+      --> sudo apt-get install python-setuptools
+      --> wget http://downloads.sourceforge.net/project/s3tools/s3cmd/1.5.0-alpha1/s3cmd-1.5.0-alpha1.tar.gz
+      --> tar xvfz s3cmd-1.5.0-alpha1.tar.gz
+      --> cd s3cmd-1.5.0-alpha1
+      --> python setup.py install
+      --> s3cmd --configure
+       
+step2: Then write backup script and save with extension .sh
+
+       #!/bin/bash
+       ## Specify the name of the database that you want to backup
+
+       # Database credentials
+       USER="yuvaraj"
+       PASSWORD="shellscript"
+       HOST="chat.c14hyhlzsej1.ap-south-1.rds.amazonaws.com"
+       DB_NAME="chat"
+
+       #Backup_Directory_Locations
+       BACKUPROOT="/tmp/backups"
+       TSTAMP=$(date +"%d-%b-%Y-%H-%M-%S")
+       S3BUCKET="s3://mysql.db"
+       #LOG_ROOT="logs/dump.log"
+       mysqldump -h$HOST -u$USER $DB_NAME -p$PASSWORD | gzip -9 > $BACKUPROOT/$DB_NAME-$TSTAMP.sql.gz
+
+       if [ $? -ne 0 ]
+       then
+       mkdir /tmp/$TSTAMP
+       s3cmd put -r /tmp/$TSTAMP $S3BUCKET/
+       s3cmd sync -r $BACKUPROOT/ $S3BUCKET/$TSTAMP/
+       rm -rf $BACKUPROOT/*
+       else
+       s3cmd sync -r $BACKUPROOT/ $S3BUCKET/$TSTAMP/
+       rm -rf $BACKUPROOT/*
+       fi
+
+step3 : Let’s run the script now:
+        --> chmod +x dbbackup.sh
+        --> Run the script to make sure it's all good
+        --> bash dbbackup.sh
+
+
+Step4 : Schedule IT With CRONTAB:
+      
+        --> vim /etc/crontab
+        --> Add the following lines:
+        --> * 12 * * * ubuntu dbbackup.sh >> dbbackup.log
+
+
+        

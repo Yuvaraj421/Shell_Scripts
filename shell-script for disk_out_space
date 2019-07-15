@@ -1,0 +1,25 @@
+                                               Shell-Script for disk running out space
+
+step1 : You need to install mailutlis on ec2 instance
+
+       --> sudo apt-get install mailutils
+
+step2 : Then write script for disk running out space
+      
+       --> #!/bin/sh
+           df -H | grep -vE '^Filesystem|tmpfs' | awk '{ print $5 " " $1 }' | while read output;
+           do
+           echo $output
+           usep=$(echo $output | awk '{ print $1}' | cut -d'%' -f1  )
+           partition=$(echo $output | awk '{ print $2 }' )
+           if [ $usep -ge 10 ]; then
+           echo "Running out of space \"$partition ($usep%)\" on $(hostname) as on $(date)" |
+           mail -s "Alert: Almost out of disk space $usep%" "kuchipudiyuvaraj@gmail.com"
+           fi
+           done
+
+step3 : Set up crontab with this script
+     
+      --> 10 20 * * * ubuntu test.sh > test.logs
+
+
